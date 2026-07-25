@@ -176,7 +176,7 @@ jobs:
           s="${{ inputs.suffix != '' && format('-{0}', inputs.suffix) || '' }}"
           dotnet build samples/Net.Agora.Sample.Video.Mac \
             --configuration Debug \
-            -f net9.0-macos \
+            -f net9.0-macos15.0 \
             -p:AgoraVideoPackageVersion="${AGORA_VIDEO_PACKAGE_VERSION}${s}"
 
   e2e:

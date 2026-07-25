@@ -16,15 +16,17 @@
       merges the results with build/merge-packages.py. AgoraSdkBand selects which pass this build
       is.
 
-      Unlike the iOS bands, the macOS target frameworks carry no platform-version suffix in the
-      folder name (net9.0-macos, not net9.0-macos15.0): the workload's default macOS platform
-      version is used, and the minimum an app may run on is set by SupportedOSPlatformVersion
-      below. There is one native slice regardless (macos-arm64_x86_64), so nothing here depends on
-      the platform version the way the iOS lib/<tfm>/ folder names do.
+      The macOS platform version is pinned in the target framework (…-macos15.0, …-macos26.0)
+      rather than left bare (net9.0-macos). A bare TFM lets the SDK float TargetPlatformVersion to
+      whichever macOS SDK pack the installed workload defaults to — which differs between machines
+      and between the two SDK bands, so the packed assembly's Microsoft.macOS reference and the
+      lib/<tfm>/ folder name can disagree (a consumer then hits CS1705, "uses a higher version of
+      Microsoft.macOS than referenced"). Pinning makes both deterministic: net8/net9 build against
+      the macOS 15.0 pack, net10 against 26.0 — the same versions CI's selected Xcode supports.
     -->
     <AgoraSdkBand Condition=" '$(AgoraSdkBand)' == '' ">net9</AgoraSdkBand>
-    <TargetFrameworks Condition=" '$(AgoraSdkBand)' == 'net9' ">net8.0-macos;net9.0-macos</TargetFrameworks>
-    <TargetFrameworks Condition=" '$(AgoraSdkBand)' == 'net10' ">net10.0-macos</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(AgoraSdkBand)' == 'net9' ">net8.0-macos15.0;net9.0-macos15.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(AgoraSdkBand)' == 'net10' ">net10.0-macos26.0</TargetFrameworks>
     <!--
       net8.0-macos is past end of support, which the SDK reports as an error. It ships
       deliberately: .NET 8 is still where a large share of apps are.
