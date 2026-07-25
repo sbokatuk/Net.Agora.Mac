@@ -1,0 +1,82 @@
+<!--
+  Everything the binding projects in this repository have in common.
+
+  Imported explicitly by each .csproj rather than picked up as a Directory.Build.props, because it
+  reads a property the project sets (AgoraPackageName) and Directory.Build.props is imported
+  before the project body, so it would never see it. That leaves each binding project as its
+  identity, its NativeReference list and its ApiDefinition.
+-->
+<Project>
+
+  <PropertyGroup>
+    <!--
+      Each .NET SDK's macOS workload supports the current target framework and the previous one:
+      the .NET 9 band builds net8.0-macos + net9.0-macos, the .NET 10 band builds net9.0-macos +
+      net10.0-macos. No single SDK can build all three, so build/BuildNugets.sh packs twice and
+      merges the results with build/merge-packages.py. AgoraSdkBand selects which pass this build
+      is.
+
+      The macOS platform version is pinned in the target framework (…-macos15.0, …-macos26.0)
+      rather than left bare (net9.0-macos). A bare TFM lets the SDK float TargetPlatformVersion to
+      whichever macOS SDK pack the installed workload defaults to — which differs between machines
+      and between the two SDK bands, so the packed assembly's Microsoft.macOS reference and the
+      lib/<tfm>/ folder name can disagree (a consumer then hits CS1705, "uses a higher version of
+      Microsoft.macOS than referenced"). Pinning makes both deterministic: net8/net9 build against
+      the macOS 15.0 pack, net10 against 26.0 — the same versions CI's selected Xcode supports.
+    -->
+    <AgoraSdkBand Condition=" '$(AgoraSdkBand)' == '' ">net9</AgoraSdkBand>
+    <TargetFrameworks Condition=" '$(AgoraSdkBand)' == 'net9' ">net8.0-macos15.0;net9.0-macos15.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(AgoraSdkBand)' == 'net10' ">net10.0-macos26.0</TargetFrameworks>
+    <!--
+      net8.0-macos is past end of support, which the SDK reports as an error. It ships
+      deliberately: .NET 8 is still where a large share of apps are.
+    -->
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <CheckEolWorkloads>false</CheckEolWorkloads>
+
+    <!--
+      12.0: the floor .NET for macOS enforces (the SDK rejects anything lower). AgoraRtcKit_macOS
+      itself is built against macOS 11.3, so 12.0 clears its minimum comfortably. Set explicitly so
+      a workload update cannot silently raise the floor an app can run on.
+    -->
+    <SupportedOSPlatformVersion>12.0</SupportedOSPlatformVersion>
+
+    <IsBindingProject>true</IsBindingProject>
+    <!--
+      Ship the native payload as a single <Assembly>.resources.zip rather than a
+      <Assembly>.resources directory. The default is 'auto', which only compresses when a
+      framework contains symlinks; the uncompressed form puts every framework file into the
+      package at deep paths that can trip NU5123 and exceed the 260-character limit on Windows once
+      the global packages folder is prepended.
+    -->
+    <CompressBindingResourcePackage>true</CompressBindingResourcePackage>
+
+    <AssemblyName>Net.Agora.$(AgoraPackageName).Mac</AssemblyName>
+    <RootNamespace>Net.Agora.$(AgoraPackageName).Mac</RootNamespace>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>true</ImplicitUsings>
+    <!-- CS1591: the hand-written binding does not annotate every member — see ApiDefinition.cs. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <Target Name="ValidateAgoraSdkBand" BeforeTargets="Build;Pack" Condition=" '$(TargetFrameworks)' == '' ">
+    <Error Text="AgoraSdkBand must be 'net9' or 'net10', but was '$(AgoraSdkBand)'." />
+  </Target>
+
+  <!-- Packaging -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Net.Agora.$(AgoraPackageName).Mac</PackageId>
+    <Title>.NET for macOS bindings for the native Agora $(AgoraPackageName) SDK.</Title>
+    <PackageTags>$(PackageTags);agora;SDK;macOS;dotnet-macos;AppKit;Binding</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../build/icon.png" Pack="true" PackagePath="/" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="licenses/" Visible="false" />
+  </ItemGroup>
+
+</Project>

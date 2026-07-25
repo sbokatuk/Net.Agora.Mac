@@ -1,0 +1,72 @@
+<Project>
+
+  <PropertyGroup>
+    <!--
+      Package version is <native macOS SDK version>.<binding revision>, e.g. 4.6.2.1 — the same
+      scheme the sibling Net.Agora.iOS and Net.Agora.Android repositories use.
+
+      This repository binds Agora's native macOS (AppKit) SDKs, distributed the same way the iOS
+      ones are (a zip behind download.agora.io) but as a separate build with a single universal
+      macos-arm64_x86_64 slice — there is no simulator on macOS, so no second slice. It is a
+      distinct platform from Mac Catalyst: Agora ships no maccatalyst slice for any of these SDKs
+      (the iOS xcframeworks are ios-arm64 + simulator only), so a MAUI app — whose only desktop-Mac
+      target is Catalyst — cannot link Agora. Native .NET for macOS (net*-macos / AppKit) can, and
+      that is what this repository targets.
+
+      Video binds AgoraRtcEngine_macOS; Voice the audio-only surface of the same engine. The macOS
+      RTC line happens to match iOS at 4.6.2; the RTM (Signaling) and Whiteboard lines do not,
+      which is why each is a separate pin.
+
+      The fourth component belongs to this repository and advances when the binding changes while
+      the native artifact stays put.
+    -->
+    <AgoraVideoMacVersion>4.6.2</AgoraVideoMacVersion>
+    <AgoraVideoBindingRevision>1</AgoraVideoBindingRevision>
+    <AgoraVoiceMacVersion>4.6.2</AgoraVoiceMacVersion>
+    <AgoraVoiceBindingRevision>1</AgoraVoiceBindingRevision>
+    <!--
+      Signaling (RTM) is a different product on its own native version line — 2.2.x, nothing to do
+      with the RTC 4.6.x line above. See build/BuildNugets.sh for how releases handle packages
+      whose versions do not move together.
+    -->
+    <AgoraSignalingMacVersion>2.2.8</AgoraSignalingMacVersion>
+    <AgoraSignalingBindingRevision>1</AgoraSignalingBindingRevision>
+    <!--
+      No Whiteboard here. Agora's docs list an "Interactive Whiteboard SDK for macOS", but netless's
+      Whiteboard is a UIKit source pod (its podspec declares an iOS deployment target only, and it
+      depends on the UIKit-based DSBridge-IOS) with no macOS/AppKit build — and there is no
+      netless-io Whiteboard-macOS repository or downloadable macOS xcframework. What Agora documents
+      for "macOS" is the JavaScript white-web-sdk running inside an Electron/web app, which is not a
+      native framework a .NET binding can consume. So, unlike the iOS repository, there is no
+      Net.Agora.Whiteboard.Mac.
+    -->
+    <!--
+      The default for projects that do not pick their own line (tests, and the Video binding
+      itself); the Voice/Signaling .csprojs override this with their own pair.
+    -->
+    <VersionPrefix>$(AgoraVideoMacVersion).$(AgoraVideoBindingRevision)</VersionPrefix>
+
+    <Authors>s.bokatuk</Authors>
+    <Company>s.bokatuk</Company>
+    <Copyright>Copyright © s.bokatuk</Copyright>
+    <PackageProjectUrl>https://github.com/sbokatuk/Net.Agora.Mac</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sbokatuk/Net.Agora.Mac</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!--
+      MIT covers the binding code in this repository. Agora's own SDK is distributed under Agora's
+      SDK licence terms (not an OSI-approved licence with its own SPDX identifier), so no second
+      licence expression is added here; nothing is claimed about Agora's own terms.
+    -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition=" '$(GITHUB_ACTIONS)' == 'true' ">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

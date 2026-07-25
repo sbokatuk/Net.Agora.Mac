@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.sbokatuk.agora.mac.devicetests</string>
+	<key>CFBundleName</key>
+	<string>Net.Agora.Mac.DeviceTests</string>
+	<key>CFBundleDisplayName</key>
+	<string>Net.Agora.Mac.DeviceTests</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>12.0</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>LSUIElement</key>
+	<true/>
+	<!--
+	  The smoke suite never captures, but SetupLocalVideo / switchCamera touch the camera/mic TCC
+	  subsystem, and macOS hard-crashes an app that calls those APIs without a usage-description
+	  string present. These keep a headless run from dying on the permission check itself.
+	-->
+	<key>NSCameraUsageDescription</key>
+	<string>Smoke test — the app does not capture; this key only satisfies the platform's presence check.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Smoke test — the app does not capture; this key only satisfies the platform's presence check.</string>
+</dict>
+</plist>
