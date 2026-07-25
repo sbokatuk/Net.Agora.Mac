@@ -1,0 +1,130 @@
+name: release
+
+# One tag releases one track. The packages sit on unrelated version lines (RTC 4.6.x, RTM 2.2.x),
+# so a single tag that published both would stamp a release note true of neither. Each track has
+# its own tag prefix — the main RTC track a bare "v", Signaling its product name — and a tag builds
+# and publishes only that track. See build/tracks.tsv.
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'signaling-v*'
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Which track does this tag release? resolve-track.sh maps the tag to a track by longest-prefix
+  # match, and errors on a tag that matches none — which stops a mistyped tag from publishing.
+  resolve:
+    name: resolve track
+    runs-on: ubuntu-latest
+    outputs:
+      track: ${{ steps.resolve.outputs.track }}
+      prefix: ${{ steps.resolve.outputs.prefix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: resolve
+        run: |
+          track=$(./build/resolve-track.sh "${GITHUB_REF_NAME}")
+          prefix=$(awk -F'\t' -v t="${track}" '$1 == t { print $2 }' build/tracks.tsv)
+          echo "track=${track}" >> "$GITHUB_OUTPUT"
+          echo "prefix=${prefix}" >> "$GITHUB_OUTPUT"
+          echo "==> ${GITHUB_REF_NAME} releases the '${track}' track" >&2
+
+  build:
+    name: build
+    needs: resolve
+    # track scopes the pack to this track's packages and skips validate/sample/e2e — the tagged
+    # commit was validated on its pull request. The tag is still only a label: each package packs
+    # at its own pin from Directory.Build.props, and the push below uses --skip-duplicate, so a
+    # package whose pin did not move is a no-op.
+    uses: ./.github/workflows/build.yml
+    with:
+      track: ${{ needs.resolve.outputs.track }}
+
+  publish:
+    name: publish to nuget.org and create release
+    needs: [resolve, build]
+    runs-on: ubuntu-latest
+    environment: nuget.org
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      - name: Authenticate to nuget.org
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # Only this track's packages were built, so this pushes only them. --skip-duplicate keeps a
+      # re-run, or a track whose pins did not all move, from erroring on an already-published one.
+      - name: Push to nuget.org
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
+            --skip-duplicate
+
+      - name: Compose release notes
+        env:
+          PREFIX: ${{ needs.resolve.outputs.prefix }}
+        run: |
+          # The previous tag on THIS track, for the changelog range — matched by the track's own
+          # prefix so a signaling release compares against the previous signaling tag, not the
+          # previous RTC one.
+          previous=$(git describe --tags --abbrev=0 --match "${PREFIX}*" "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+
+          # The release notes are the curated docs/release-notes/<tag>.md — named by the full tag,
+          # so each track's file is unambiguous (v4.6.2.1.md, signaling-v2.2.8.1.md). Without one,
+          # fall back to the commit range.
+          notes="docs/release-notes/${GITHUB_REF_NAME}.md"
+
+          {
+            if [ -f "${notes}" ]; then
+              echo "==> using curated notes from ${notes}" >&2
+              cat "${notes}"
+            else
+              echo "## What's changed"
+              echo
+              if [ -n "${previous}" ]; then
+                git log --no-merges --pretty='- %s (%h)' "${previous}..${GITHUB_REF_NAME}"
+              else
+                echo "Initial release of the ${{ needs.resolve.outputs.track }} track."
+              fi
+            fi
+            if [ -n "${previous}" ]; then
+              echo
+              echo "**Full changelog**: ${{ github.server_url }}/${{ github.repository }}/compare/${previous}...${GITHUB_REF_NAME}"
+            fi
+          } > release-notes.md
+
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md

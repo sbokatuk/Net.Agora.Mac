@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A native AppKit app (not MAUI — MAUI has no net-macos head) that joins a channel and
+    publishes/renders video directly against AgoraRtcEngineKit, using the raw Net.Agora.Video.Mac
+    binding. It consumes the packed package from ../../artifacts (see NuGet.config), so fetch and
+    pack first:
+      ./build/fetch-video.sh && ./build/BuildNugets.sh
+      dotnet build samples/Net.Agora.Sample.Video.Mac -f net9.0-macos
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-macos;net9.0-macos</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <CheckEolWorkloads>false</CheckEolWorkloads>
+
+    <ApplicationId>com.sbokatuk.agora.mac.sample.video</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>12.0</SupportedOSPlatformVersion>
+
+    <AgoraVideoPackageVersion Condition=" '$(AgoraVideoPackageVersion)' == '' ">$(AgoraVideoMacVersion).$(AgoraVideoBindingRevision)</AgoraVideoPackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exact bracketed version so a missing local build fails restore rather than resolving from nuget.org. -->
+    <PackageReference Include="Net.Agora.Video.Mac" Version="[$(AgoraVideoPackageVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Info.plist" LogicalName="Info.plist" />
+  </ItemGroup>
+
+</Project>

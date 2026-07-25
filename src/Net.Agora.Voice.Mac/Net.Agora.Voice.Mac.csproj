@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AgoraPackageName>Voice</AgoraPackageName>
+    <!--
+      AgoraRtcKit and its codec dependencies are dynamic frameworks, so they cannot be embedded
+      into this assembly and linked from there — the consuming app's linker never sees them. They
+      travel beside the assembly instead; see the NativeReference block below.
+    -->
+    <NoBindingEmbedding>true</NoBindingEmbedding>
+    <Nullable>enable</Nullable>
+    <VersionPrefix>$(AgoraVoiceMacVersion).$(AgoraVoiceBindingRevision)</VersionPrefix>
+  </PropertyGroup>
+
+  <Import Project="../Agora.Binding.props" />
+
+  <Target Name="ValidateAgoraXcframeworks" BeforeTargets="Build;Pack"
+          Condition="!Exists('$(MSBuildProjectDirectory)/lib/AgoraRtcKit.xcframework')">
+    <Error Text="lib/AgoraRtcKit.xcframework is missing. Run build/fetch-voice.sh first." />
+  </Target>
+
+  <ItemGroup>
+    <ObjcBindingApiDefinition Include="ApiDefinition.cs" />
+    <ObjcBindingCoreSource Include="StructsAndEnums.cs" />
+  </ItemGroup>
+
+  <!--
+    How the frameworks reach the consuming app — same mechanics as Net.Agora.Video.Mac: dynamic
+    frameworks packed beside the assembly as <name>.resources.zip, unpacked and linked by the
+    Apple SDK in whichever app references this package.
+
+    Unlike the iOS repository — where Agora publishes a separate, smaller AgoraAudio_iOS pod whose
+    AgoraRtcKit is built without the video pipeline — Agora ships no standalone voice-only macOS
+    SDK (the AgoraAudio_macOS pod is a dead 3.7.x line). So this binds the *same* AgoraRtcKit
+    framework as Net.Agora.Video.Mac, staged from the same AgoraRtcEngine_macOS archive, and
+    therefore carries the same six frameworks — video_dec included, since the full engine's binary
+    loads it at launch. The Voice package's value on macOS is the audio-only managed surface and
+    parity with the cross-platform façade's Voice client, not a smaller payload.
+
+    This package and Net.Agora.Video.Mac are mutually exclusive within one app: both ship a
+    framework named AgoraRtcKit, so referencing both collides at bundle time.
+  -->
+  <ItemGroup>
+    <NativeReference Include="lib/AgoraRtcKit.xcframework">
+      <Kind>Framework</Kind>
+    </NativeReference>
+    <NativeReference Include="lib/aosl.xcframework">
+      <Kind>Framework</Kind>
+    </NativeReference>
+    <NativeReference Include="lib/Agorafdkaac.xcframework">
+      <Kind>Framework</Kind>
+    </NativeReference>
+    <NativeReference Include="lib/Agoraffmpeg.xcframework">
+      <Kind>Framework</Kind>
+    </NativeReference>
+    <NativeReference Include="lib/AgoraSoundTouch.xcframework">
+      <Kind>Framework</Kind>
+    </NativeReference>
+    <NativeReference Include="lib/video_dec.xcframework">
+      <Kind>Framework</Kind>
+    </NativeReference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Description>.NET for macOS (AppKit) bindings for the audio surface of the Agora macOS RTC SDK (AgoraRtcEngine_macOS $(AgoraVoiceMacVersion)). Lets a native .NET for macOS app join Agora RTC channels and publish/subscribe audio, with an audio-only API. Use Net.Agora.Video.Mac instead if the app ever shows or sends video — the two are mutually exclusive. Hand-written against the real headers — see ApiDefinition.cs.</Description>
+    <PackageTags>$(PackageTags);Voice;RTC;audio;streaming</PackageTags>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,245 @@
+name: build
+
+# Reusable pipeline: packs every package in build/packages.tsv — each at its own version from
+# Directory.Build.props, optionally suffixed for prereleases — validates the result, builds the
+# sample against the packed package, and runs the host smoke tests.
+
+on:
+  workflow_call:
+    inputs:
+      suffix:
+        description: >
+          Optional prerelease suffix (e.g. beta.12.34) appended to every package's own version.
+          The packages sit on independent native version lines (RTC 4.6.x, RTM 2.2.x), so there
+          is no single version to stamp — each packs at its own pin from Directory.Build.props.
+        required: false
+        default: ''
+        type: string
+      track:
+        description: >
+          Restrict the build to one release track — rtc or signaling (see build/tracks.tsv). Packs
+          only that track's packages and skips the CI-only jobs (validate, sample, e2e), which the
+          pull request that merged this commit already ran. Empty, the default, builds and
+          validates the whole repository — what push and pull_request want. Releases set it, so a
+          per-track tag publishes only its own track.
+        required: false
+        default: ''
+        type: string
+      e2e-target-frameworks:
+        description: >
+          Which of the package's target frameworks the host smoke tests run against, as a JSON
+          array. Defaults to the two extremes: net8, the oldest asset set, and net10, whose assets
+          are produced by the merge step in BuildNugets.sh and so are the only ones that could be
+          grafted in wrong. net9 sits between them and comes out of the same pack pass as net8.
+        required: false
+        default: '["net8.0-macos15.0", "net10.0-macos26.0"]'
+        type: string
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  pack:
+    name: pack
+    # Pinned rather than macos-latest so an image roll cannot change which Xcode versions are
+    # available to select-xcode.sh.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: ./.github/scripts/select-xcode.sh
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Install macOS workloads for every SDK band
+        run: |
+          for major in 9 10; do
+            dir="${RUNNER_TEMP}/sdk${major}"
+            mkdir -p "${dir}"
+            sdk=$(dotnet --list-sdks | grep "^${major}\." | tail -1 | cut -d' ' -f1)
+            ( cd "${dir}" \
+              && dotnet new globaljson --sdk-version "${sdk}" --force \
+              && dotnet workload install macos )
+          done
+
+      - name: Cache the fetched xcframeworks
+        id: xcframeworks
+        uses: actions/cache@v4
+        with:
+          # A glob rather than a list: there are fifteen of these directories, twelve of them
+          # extensions, and a package whose lib/ was left out of this list restores from cache with
+          # nothing in it — which fails the build in a way that reads like a broken fetch script
+          # rather than a stale workflow.
+          path: src/*/lib
+          key: agora-macos-xcframeworks-${{ hashFiles('Directory.Build.props', 'build/checksums.txt') }}
+
+      - name: Fetch the Agora macOS SDKs
+        if: steps.xcframeworks.outputs.cache-hit != 'true'
+        run: |
+          ./build/fetch-video.sh
+          ./build/fetch-voice.sh
+          ./build/fetch-signaling.sh
+          ./build/fetch-extensions.sh
+
+      - name: Pack
+        run: |
+          args=""
+          [ -n "${{ inputs.track }}" ] && args="$args --track ${{ inputs.track }}"
+          [ -n "${{ inputs.suffix }}" ] && args="$args --suffix ${{ inputs.suffix }}"
+          ./build/BuildNugets.sh $args
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          if-no-files-found: error
+          retention-days: 7
+
+  validate:
+    name: validate packages
+    needs: pack
+    # Skipped on a scoped track release: the package tests assert the whole package set, which a
+    # single-track pack does not produce — and the merged commit already ran them on its PR.
+    if: ${{ inputs.track == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      - name: Run package tests
+        run: dotnet test tests/Net.Agora.Mac.PackageTests --logger 'trx;LogFileName=package-tests.trx'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-test-results
+          path: '**/*.trx'
+          if-no-files-found: ignore
+          retention-days: 7
+
+  sample:
+    name: build sample app
+    timeout-minutes: 30
+    needs: pack
+    # Off on a scoped track release — the tagged commit was validated on its PR. See validate.
+    if: ${{ inputs.track == '' }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: ./.github/scripts/select-xcode.sh
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install macOS workload
+        run: dotnet workload install macos
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      # The sample consumes the packed package exactly as a user would: it restores from
+      # artifacts/ (see NuGet.config) and links against AgoraRtcEngineKit directly, with no
+      # cross-platform façade in between. Debug — a Release build AOT-compiles for no added signal
+      # on whether the package restores and links.
+      - name: Build the sample against the packed package
+        run: |
+          . ./build/pins.sh
+          s="${{ inputs.suffix != '' && format('-{0}', inputs.suffix) || '' }}"
+          dotnet build samples/Net.Agora.Sample.Video.Mac \
+            --configuration Debug \
+            -f net9.0-macos \
+            -p:AgoraVideoPackageVersion="${AGORA_VIDEO_PACKAGE_VERSION}${s}"
+
+  e2e:
+    name: smoke test (${{ matrix.package }}, ${{ matrix.target-framework }})
+    timeout-minutes: 30
+    needs: pack
+    # Off on a scoped track release — the tagged commit was device-tested on its PR. See validate.
+    if: ${{ inputs.track == '' }}
+    runs-on: macos-15
+    strategy:
+      # fail-fast off: when one leg breaks it is worth knowing whether the others did too.
+      fail-fast: false
+      matrix:
+        # One leg per package: the RTC pair ship a framework named AgoraRtcKit, so a single device
+        # test app holds exactly one of them — see tests/Net.Agora.Mac.DeviceTests. Signaling has no
+        # leg here: its packed binding is exercised end to end by the façade repository's own suite,
+        # and this repository's package tests cover its layout and API surface.
+        package: [Video, Voice]
+        target-framework: ${{ fromJSON(inputs.e2e-target-frameworks) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: ./.github/scripts/select-xcode.sh
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Install macOS workload
+        run: |
+          # The device app is built for the target framework under test, so install the workload
+          # for the band that owns it. global.json pins .NET 9; the app may need .NET 10.
+          mkdir -p "${RUNNER_TEMP}/sdk10"
+          ( cd "${RUNNER_TEMP}/sdk10" \
+            && dotnet new globaljson --sdk-version "$(dotnet --list-sdks | grep '^10\.' | tail -1 | cut -d' ' -f1)" --force \
+            && dotnet workload install macos )
+          dotnet workload install macos
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      - name: Run smoke tests on the host
+        run: |
+          . ./build/pins.sh
+          case "${{ matrix.package }}" in
+            Video) base="${AGORA_VIDEO_PACKAGE_VERSION}" ;;
+            Voice) base="${AGORA_VOICE_PACKAGE_VERSION}" ;;
+          esac
+          version="${base}${{ inputs.suffix != '' && format('-{0}', inputs.suffix) || '' }}"
+          ./.github/scripts/run-macos-tests.sh "${version}" "${{ matrix.target-framework }}" "${{ matrix.package }}"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-test-logs-${{ matrix.package }}-${{ matrix.target-framework }}
+          path: macos-tests.log
+          if-no-files-found: ignore
+          retention-days: 7

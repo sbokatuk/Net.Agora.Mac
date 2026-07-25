@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Which package to exercise (Video or Voice) and which of its target frameworks. Both go
+      through properties of our own: overriding TargetFramework directly on the command line
+      breaks restore, and the two packages cannot be referenced together — both ship a framework
+      named AgoraRtcKit, so one app holds one of them.
+    -->
+    <AgoraDevicePackage Condition=" '$(AgoraDevicePackage)' == '' ">Video</AgoraDevicePackage>
+    <AgoraDeviceTargetFramework Condition=" '$(AgoraDeviceTargetFramework)' == '' ">net9.0-macos</AgoraDeviceTargetFramework>
+    <TargetFramework>$(AgoraDeviceTargetFramework)</TargetFramework>
+    <!--
+      The Voice binding deliberately does not bind the video entry points, so the smoke tests
+      compile per flavour — different using, different checks — rather than probing at runtime.
+      Unlike iOS, the framework list is the same for both flavours: there is no separate voice-only
+      macOS build, so Voice carries video_dec too (see the Voice binding's csproj).
+    -->
+    <DefineConstants Condition=" '$(AgoraDevicePackage)' == 'Voice' ">$(DefineConstants);AGORA_VOICE</DefineConstants>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <CheckEolWorkloads>false</CheckEolWorkloads>
+
+    <ApplicationId>com.sbokatuk.agora.mac.devicetests</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+
+    <!-- The floor .NET for macOS enforces — see src/Agora.Binding.props. -->
+    <SupportedOSPlatformVersion>12.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <!--
+    The e2e deliberately consumes the packed NuGet from ./artifacts rather than a ProjectReference,
+    so it exercises the artifact that actually gets published — the merged three-target-framework
+    package out of build/merge-packages.py, native payload and all, which a ProjectReference would
+    prove nothing about. See NuGet.config for the local feed.
+  -->
+  <PropertyGroup>
+    <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' And '$(AgoraDevicePackage)' == 'Voice' ">$(AgoraVoiceMacVersion).$(AgoraVoiceBindingRevision)</AgoraDevicePackageVersion>
+    <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' ">$(VersionPrefix)</AgoraDevicePackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Exact version, in brackets — a bare version is a *minimum* to NuGet, so a build missing from
+      artifacts/ would silently resolve from nuget.org instead of failing the restore.
+    -->
+    <PackageReference Include="Net.Agora.$(AgoraDevicePackage).Mac" Version="[$(AgoraDevicePackageVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Info.plist" LogicalName="Info.plist" />
+  </ItemGroup>
+
+</Project>
