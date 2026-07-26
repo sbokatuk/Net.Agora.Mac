@@ -204,10 +204,16 @@ namespace Net.Agora.Video.Mac {
 		[Export ("setColorEnhanceOptions:options:")]
 		nint SetColorEnhanceOptions (bool enable, [NullAllowed] AgoraColorEnhanceOptions options);
 
-		// - (int)enableFaceDetection: — local face detection
-		// (Net.Agora.Extensions.FaceDetection.Mac).
-		[Export ("enableFaceDetection:")]
-		nint EnableFaceDetection (bool enable);
+		// Deliberately NOT bound on macOS: -enableFaceDetection:, for the same reason as
+		// -switchCamera above. The shared AgoraRtcEngineKit.h declares it and
+		// Net.Agora.Extensions.FaceDetection.Mac ships the extension framework, but the macOS
+		// engine does not implement the selector — sending it raises "unrecognized selector",
+		// verified on the façade's macOS host suite with the extension package referenced and its
+		// framework confirmed loaded, so this is the engine and not a missing payload.
+		//
+		// It was bound here at first and the crash was what the new host suite caught, which is
+		// why the binding is the place to fix it: a bound selector the engine lacks is a latent
+		// crash in every consumer, and there is nothing a caller can check first.
 	}
 
 	// AgoraVirtualBackgroundSource — AgoraObjects.h. What to put behind the segmented person: a
