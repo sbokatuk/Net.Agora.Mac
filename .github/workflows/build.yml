@@ -168,14 +168,18 @@ jobs:
 
       # The sample consumes the packed package exactly as a user would: it restores from
       # artifacts/ (see NuGet.config) and links against AgoraRtcEngineKit directly, with no
-      # cross-platform façade in between. Debug — a Release build AOT-compiles for no added signal
-      # on whether the package restores and links.
+      # cross-platform façade in between.
+      #
+      # Release, not Debug: this is the only place in this repository that exercises the
+      # configuration a shipped app is built in — the managed trimmer and AOT both run, and a
+      # binding that restores and links fine in Debug can still fail there. The host smoke suite
+      # stays on Debug deliberately (see run-macos-tests.sh); this leg is what covers the other one.
       - name: Build the sample against the packed package
         run: |
           . ./build/pins.sh
           s="${{ inputs.suffix != '' && format('-{0}', inputs.suffix) || '' }}"
           dotnet build samples/Net.Agora.Sample.Video.Mac \
-            --configuration Debug \
+            --configuration Release \
             -f net9.0-macos15.0 \
             -p:AgoraVideoPackageVersion="${AGORA_VIDEO_PACKAGE_VERSION}${s}"
 
@@ -191,10 +195,10 @@ jobs:
       fail-fast: false
       matrix:
         # One leg per package: the RTC pair ship a framework named AgoraRtcKit, so a single device
-        # test app holds exactly one of them — see tests/Net.Agora.Mac.DeviceTests. Signaling has no
-        # leg here: its packed binding is exercised end to end by the façade repository's own suite,
-        # and this repository's package tests cover its layout and API surface.
-        package: [Video, Voice]
+        # test app holds exactly one of them — see tests/Net.Agora.Mac.DeviceTests. Signaling is a
+        # separate product (AgoraRtmKit) and gets its own leg, which is also where the generated
+        # awaitable surface is exercised against the real SDK rather than asserted from metadata.
+        package: [Video, Voice, Signaling]
         target-framework: ${{ fromJSON(inputs.e2e-target-frameworks) }}
     steps:
       - uses: actions/checkout@v4
@@ -231,6 +235,7 @@ jobs:
           case "${{ matrix.package }}" in
             Video) base="${AGORA_VIDEO_PACKAGE_VERSION}" ;;
             Voice) base="${AGORA_VOICE_PACKAGE_VERSION}" ;;
+            Signaling) base="${AGORA_SIGNALING_PACKAGE_VERSION}" ;;
           esac
           version="${base}${{ inputs.suffix != '' && format('-{0}', inputs.suffix) || '' }}"
           ./.github/scripts/run-macos-tests.sh "${version}" "${{ matrix.target-framework }}" "${{ matrix.package }}"

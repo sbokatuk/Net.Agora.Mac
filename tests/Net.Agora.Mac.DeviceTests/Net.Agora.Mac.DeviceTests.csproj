@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <!--
-      Which package to exercise (Video or Voice) and which of its target frameworks. Both go
-      through properties of our own: overriding TargetFramework directly on the command line
-      breaks restore, and the two packages cannot be referenced together — both ship a framework
-      named AgoraRtcKit, so one app holds one of them.
+      Which package to exercise (Video, Voice or Signaling) and which of its target frameworks.
+      Both go through properties of our own: overriding TargetFramework directly on the command
+      line breaks restore, and the two RTC packages cannot be referenced together — both ship a
+      framework named AgoraRtcKit, so one app holds one of them. Signaling is a separate product
+      (AgoraRtmKit) and gets its own flavour rather than sharing an app.
     -->
     <AgoraDevicePackage Condition=" '$(AgoraDevicePackage)' == '' ">Video</AgoraDevicePackage>
     <!-- Pinned platform version (…-macos15.0), not bare net9.0-macos — see the sample csproj for
@@ -20,6 +21,7 @@
       macOS build, so Voice carries video_dec too (see the Voice binding's csproj).
     -->
     <DefineConstants Condition=" '$(AgoraDevicePackage)' == 'Voice' ">$(DefineConstants);AGORA_VOICE</DefineConstants>
+    <DefineConstants Condition=" '$(AgoraDevicePackage)' == 'Signaling' ">$(DefineConstants);AGORA_SIGNALING</DefineConstants>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -43,6 +45,8 @@
   -->
   <PropertyGroup>
     <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' And '$(AgoraDevicePackage)' == 'Voice' ">$(AgoraVoiceMacVersion).$(AgoraVoiceBindingRevision)</AgoraDevicePackageVersion>
+    <!-- Signaling is on its own native line (RTM 2.2.x), not the RTC one VersionPrefix carries. -->
+    <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' And '$(AgoraDevicePackage)' == 'Signaling' ">$(AgoraSignalingMacVersion).$(AgoraSignalingBindingRevision)</AgoraDevicePackageVersion>
     <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' ">$(VersionPrefix)</AgoraDevicePackageVersion>
   </PropertyGroup>
 

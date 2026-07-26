@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
-#if AGORA_VOICE
+#if AGORA_SIGNALING
+using Net.Agora.Signaling.Mac;
+#elif AGORA_VOICE
 using Net.Agora.Voice.Mac;
 #else
 using Net.Agora.Video.Mac;
@@ -34,19 +36,35 @@ public static class SmokeTests
     /// <summary>Writes a line to stdout under the current check. Set by the app delegate.</summary>
     public static Action<string> Reporter { get; set; } = _ => { };
 
+#if AGORA_SIGNALING
+    /// <summary>The client every check after construction shares. Set by <see cref="ConstructsTheClient"/>.</summary>
+    private static AgoraRtmClientKit? _client;
+#else
     /// <summary>The engine every check after construction shares. Set by <see cref="ConstructsTheEngine"/>.</summary>
     private static AgoraRtcEngineKit? _engine;
+#endif
 
     /// <summary>
     /// Held for the engine's lifetime: the binding hands the delegate to native code, which does
     /// not keep the managed wrapper alive — a collected delegate would turn a later callback into
     /// a crash rather than a failing check.
     /// </summary>
+#if AGORA_SIGNALING
+    private static ClientDelegate? _delegate;
+#else
     private static EngineDelegate? _delegate;
+#endif
 
     /// <summary>Every check, in the order they must run. Per flavour — see the csproj.</summary>
     public static SmokeTest[] All =>
     [
+#if AGORA_SIGNALING
+        new("every native framework is linked and loadable", EveryFrameworkIsLinked),
+        new("reports the native SDK version", ReportsTheSdkVersion),
+        new("constructs the client with an unregistered App ID", ConstructsTheClient),
+        new("an [Async] operation completes end-to-end", AsyncOperationCompletes),
+        new("destroys the client", DestroysTheClient),
+#else
         new("every native framework is linked and loadable", EveryFrameworkIsLinked),
         new("reports the native SDK version", ReportsTheSdkVersion),
         new("constructs the engine with an unregistered App ID", ConstructsTheEngine),
@@ -63,6 +81,7 @@ public static class SmokeTests
         new("sets the channel profile and client role", SetsProfileAndRole),
         new("leave without a join is reported, not thrown", LeaveWithoutAJoinIsReported),
         new("destroys the shared engine", DestroysTheEngine),
+#endif
     ];
 
     private static void Report(string message) => Reporter(message);
@@ -76,9 +95,16 @@ public static class SmokeTests
     /// macOS AgoraRtcKit is the full engine even when only its audio surface is bound.
     /// </remarks>
     private static readonly string[] Frameworks =
+#if AGORA_SIGNALING
+    // Signaling is a different product: two frameworks, and no codec payload at all.
+    [
+        "AgoraRtmKit", "aosl",
+    ];
+#else
     [
         "AgoraRtcKit", "aosl", "Agorafdkaac", "Agoraffmpeg", "AgoraSoundTouch", "video_dec",
     ];
+#endif
 
     [DllImport("/usr/lib/libSystem.dylib")]
     private static extern uint _dyld_image_count();
@@ -123,6 +149,92 @@ public static class SmokeTests
         Report($"all {Frameworks.Length} frameworks loaded");
     }
 
+#if AGORA_SIGNALING
+    /// <summary>Reads <c>+[AgoraRtmClientKit getVersion]</c> and checks its shape.</summary>
+    /// <remarks>
+    /// Through the binding rather than a raw selector send, unlike the RTC flavours' version
+    /// check: RTM's version getter is part of the bound surface, so the binding call is itself
+    /// the thing to prove here.
+    /// </remarks>
+    private static void ReportsTheSdkVersion()
+    {
+        var version = AgoraRtmClientKit.GetVersion();
+
+        Report($"native SDK version {version ?? "(null)"}");
+
+        // The shape, not a pinned value — same reasoning as the RTC flavours.
+        Assert(!string.IsNullOrWhiteSpace(version), "getVersion returned nothing.");
+        Assert(
+            version!.Any(char.IsAsciiDigit) && version.Contains('.', StringComparison.Ordinal),
+            $"'{version}' does not look like a dotted version number.");
+    }
+
+    private static void ConstructsTheClient()
+    {
+        var config = new AgoraRtmClientConfig(AppId, "net-agora-device-tests");
+
+        // The delegate goes in at construction: passing a subclass of the [Model] type is what
+        // proves the protocol's exported selectors registered, even though no callback fires in
+        // this suite — nothing is subscribed and nobody ever logs in.
+        _delegate = new ClientDelegate();
+        _client = new AgoraRtmClientKit(config, _delegate, out var error);
+
+        Assert(
+            _client.Handle != NativeHandle.Zero,
+            $"initWithConfig:delegate:error: rejected the config: {error?.LocalizedDescription}");
+
+        Report("client constructed");
+    }
+
+    private static AgoraRtmClientKit Client =>
+        _client ?? throw new InvalidOperationException("the client has not been constructed yet.");
+
+    /// <summary>
+    /// Awaits <c>LogoutAsync</c> — without a login, so the SDK answers through the completion
+    /// block with no network round trip — and asserts the [Async] contract: the Task completes
+    /// (never faults) and carries the error as data. This is the one place the generated
+    /// awaitable surface is exercised against the real SDK rather than asserted from metadata,
+    /// which is what the package tests do.
+    /// </summary>
+    private static void AsyncOperationCompletes()
+    {
+        var task = Client.LogoutAsync();
+
+        // The completion arrives through the main queue and this suite runs on the main thread
+        // (see Program.cs), so a blocking Wait would deadlock — pumping the run loop is what
+        // lets the completion in while the check stays synchronous.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (!task.IsCompleted && DateTime.UtcNow < deadline)
+        {
+            Foundation.NSRunLoop.Current.RunUntil(Foundation.NSDate.FromTimeIntervalSinceNow(0.05));
+        }
+
+        Assert(task.IsCompleted, "LogoutAsync's Task did not complete within 10 seconds.");
+        Assert(
+            task.IsCompletedSuccessfully,
+            $"LogoutAsync's Task is {task.Status} — the binding promises completion, not faulting.");
+
+        var result = task.Result;
+        Assert(result is not null, "LogoutAsync completed with a null result.");
+
+        // Which code a login-less logout answers is the SDK's business, not this suite's to pin;
+        // that it arrives as data on a completed Task is the binding's contract.
+        Report($"logout answered errorCode {result!.ErrorInfo?.ErrorCode.ToString() ?? "(none)"}");
+    }
+
+    private static void DestroysTheClient()
+    {
+        // Destroy is synchronous and the client is unusable afterwards — release everything
+        // first, as the binding's own comment on Destroy requires.
+        var client = Client;
+        _client = null;
+        _delegate = null;
+
+        var code = client.Destroy();
+
+        Report($"destroy returned {code}");
+    }
+#else
     [DllImport("/usr/lib/libobjc.A.dylib")]
     private static extern IntPtr object_getClass(IntPtr obj);
 
@@ -276,6 +388,8 @@ public static class SmokeTests
         Report("destroyed");
     }
 
+#endif
+
     private static void AssertZero(nint code, string what)
     {
         Assert(code == 0, $"'{what}' returned {code} rather than 0.");
@@ -289,6 +403,18 @@ public static class SmokeTests
         }
     }
 
+#if AGORA_SIGNALING
+    /// <summary>
+    /// A subclass of the bound (all-optional) delegate protocol. Its existence at client
+    /// construction is the assertion; no callback in the bound surface fires without a login.
+    /// </summary>
+    private sealed class ClientDelegate : AgoraRtmClientDelegate
+    {
+        public override void ConnectionChangedToState(
+            AgoraRtmClientKit rtmKit, string channelName, AgoraRtmClientConnectionState state, nint reason) =>
+            SmokeTests.Reporter($"delegate: connection {state}");
+    }
+#else
     /// <summary>
     /// A subclass of the bound (all-optional) delegate protocol. Its existence at engine
     /// construction is the assertion; no callback in the bound surface fires without a join.
@@ -298,4 +424,5 @@ public static class SmokeTests
         public override void DidOccurError(AgoraRtcEngineKit engine, AgoraErrorCode errorCode) =>
             SmokeTests.Reporter($"delegate: error {errorCode}");
     }
+#endif
 }

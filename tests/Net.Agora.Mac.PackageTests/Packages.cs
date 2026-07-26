@@ -98,6 +98,14 @@ public static class Packages
         All.SelectMany(p => TargetFrameworks.Select(tfm => new object[] { p.Id, tfm }));
 
     /// <summary>
+    /// The RTC packages only — Video and Voice, the axis of the engine-specific member checks.
+    /// Both bind the same AgoraRtcEngineKit class, so what holds for one engine's shape must hold
+    /// for the other; Signaling is a different product with no engine at all.
+    /// </summary>
+    public static IEnumerable<object[]> RtcPackageFrameworks =>
+        new[] { Video, Voice }.SelectMany(id => TargetFrameworks.Select(tfm => new object[] { id, tfm }));
+
+    /// <summary>
     /// Whether a slice directory name denotes a macOS slice. There is one macOS slice
     /// (macos-arm64_x86_64 today) and no simulator on macOS, so unlike the iOS suite there is no
     /// device/simulator distinction to draw — only "is this the macOS slice, and the only one".
