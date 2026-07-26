@@ -21,16 +21,16 @@
       the native artifact stays put.
     -->
     <AgoraVideoMacVersion>4.6.2</AgoraVideoMacVersion>
-    <AgoraVideoBindingRevision>1</AgoraVideoBindingRevision>
+    <AgoraVideoBindingRevision>2</AgoraVideoBindingRevision>
     <AgoraVoiceMacVersion>4.6.2</AgoraVoiceMacVersion>
-    <AgoraVoiceBindingRevision>1</AgoraVoiceBindingRevision>
+    <AgoraVoiceBindingRevision>2</AgoraVoiceBindingRevision>
     <!--
       Signaling (RTM) is a different product on its own native version line — 2.2.x, nothing to do
       with the RTC 4.6.x line above. See build/BuildNugets.sh for how releases handle packages
       whose versions do not move together.
     -->
     <AgoraSignalingMacVersion>2.2.8</AgoraSignalingMacVersion>
-    <AgoraSignalingBindingRevision>1</AgoraSignalingBindingRevision>
+    <AgoraSignalingBindingRevision>2</AgoraSignalingBindingRevision>
     <!--
       No Whiteboard here. Agora's docs list an "Interactive Whiteboard SDK for macOS", but netless's
       Whiteboard is a UIKit source pod (its podspec declares an iOS deployment target only, and it
