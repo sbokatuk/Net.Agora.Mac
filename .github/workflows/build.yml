@@ -168,14 +168,18 @@ jobs:
 
       # The sample consumes the packed package exactly as a user would: it restores from
       # artifacts/ (see NuGet.config) and links against AgoraRtcEngineKit directly, with no
-      # cross-platform façade in between. Debug — a Release build AOT-compiles for no added signal
-      # on whether the package restores and links.
+      # cross-platform façade in between.
+      #
+      # Release, not Debug: this is the only place in this repository that exercises the
+      # configuration a shipped app is built in — the managed trimmer and AOT both run, and a
+      # binding that restores and links fine in Debug can still fail there. The host smoke suite
+      # stays on Debug deliberately (see run-macos-tests.sh); this leg is what covers the other one.
       - name: Build the sample against the packed package
         run: |
           . ./build/pins.sh
           s="${{ inputs.suffix != '' && format('-{0}', inputs.suffix) || '' }}"
           dotnet build samples/Net.Agora.Sample.Video.Mac \
-            --configuration Debug \
+            --configuration Release \
             -f net9.0-macos15.0 \
             -p:AgoraVideoPackageVersion="${AGORA_VIDEO_PACKAGE_VERSION}${s}"
 
