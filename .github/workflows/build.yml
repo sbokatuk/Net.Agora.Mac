@@ -191,10 +191,10 @@ jobs:
       fail-fast: false
       matrix:
         # One leg per package: the RTC pair ship a framework named AgoraRtcKit, so a single device
-        # test app holds exactly one of them — see tests/Net.Agora.Mac.DeviceTests. Signaling has no
-        # leg here: its packed binding is exercised end to end by the façade repository's own suite,
-        # and this repository's package tests cover its layout and API surface.
-        package: [Video, Voice]
+        # test app holds exactly one of them — see tests/Net.Agora.Mac.DeviceTests. Signaling is a
+        # separate product (AgoraRtmKit) and gets its own leg, which is also where the generated
+        # awaitable surface is exercised against the real SDK rather than asserted from metadata.
+        package: [Video, Voice, Signaling]
         target-framework: ${{ fromJSON(inputs.e2e-target-frameworks) }}
     steps:
       - uses: actions/checkout@v4
@@ -231,6 +231,7 @@ jobs:
           case "${{ matrix.package }}" in
             Video) base="${AGORA_VIDEO_PACKAGE_VERSION}" ;;
             Voice) base="${AGORA_VOICE_PACKAGE_VERSION}" ;;
+            Signaling) base="${AGORA_SIGNALING_PACKAGE_VERSION}" ;;
           esac
           version="${base}${{ inputs.suffix != '' && format('-{0}', inputs.suffix) || '' }}"
           ./.github/scripts/run-macos-tests.sh "${version}" "${{ matrix.target-framework }}" "${{ matrix.package }}"

@@ -9,8 +9,9 @@ set -euo pipefail
 #
 # Usage: run-macos-tests.sh VERSION [TARGET_FRAMEWORK] [PACKAGE]
 #
-# PACKAGE is the packages.tsv id — Video (default) or Voice. One run exercises one package: both
-# ship a framework named AgoraRtcKit, so a single app holds exactly one of them.
+# PACKAGE is the packages.tsv id — Video (default), Voice or Signaling. One run exercises one
+# package: the RTC pair both ship a framework named AgoraRtcKit, so a single app holds exactly one
+# of them, and Signaling is a separate product with its own suite.
 
 VERSION="${1:?a package version is required}"
 TARGET_FRAMEWORK="${2:-net10.0-macos26.0}"
