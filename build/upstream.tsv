@@ -1,0 +1,28 @@
+# What the upstream-drift workflow watches, and the single source of truth for it.
+#
+# build/check-upstream.sh reads this; it knows how to query each ecosystem but nothing about which
+# components this repository binds. Adding a native SDK means adding a row here.
+#
+# Columns are single-tab-separated.
+#   group    reporting group - one GitHub issue per group, titled with this text. These mirror the
+#            release tracks in build/tracks.tsv on purpose: a drift report then lands on the same
+#            axis as the release that fixes it.
+#   label    how the component is named inside the issue
+#   kind     cocoapods | maven | github-release | github-tag
+#   pin      the MSBuild property in Directory.Build.props holding the pinned version
+#   locator  kind-specific: pod name, groupId:artifactId[:packaging][@repo], or owner/repo[:strip]
+#   confirm  download URL template with {version}, or "-" to follow the vendor's own pointer
+#            (for CocoaPods, the podspec's source - the same URL build/fetch-*.sh resolves)
+#
+# group	label	kind	pin	locator	confirm
+RTC	Agora RTC (Video)	cocoapods	AgoraVideoMacVersion	AgoraRtcEngine_macOS	-
+# Voice checks AgoraRtcEngine_macOS too, not AgoraAudio_macOS: there is no standalone voice-only
+# macOS SDK. AgoraAudio_macOS is a dead 3.7.x line, so the Voice package binds the audio surface of
+# the same archive the Video package uses - see build/fetch-voice.sh. Pointing this row at the dead
+# pod made it read as permanently up to date while comparing a 4.6.2 pin against 3.7.2.
+RTC	Agora RTC (Voice)	cocoapods	AgoraVoiceMacVersion	AgoraRtcEngine_macOS	-
+# RTM 2.x has no macOS pod. Its versions are the tags on AgoraIO/AgoraRtm_Apple - the repository
+# whose Package.swift build/fetch-signaling.sh already treats as the source of truth - and the
+# artifacts are per-module zips behind download.agora.io/rtm2, so the confirmation is spelled out
+# rather than derived. AgoraRtmKit is the module that must exist for the fetch to work at all.
+Signaling	Agora Signaling (RTM)	github-tag	AgoraSignalingMacVersion	AgoraIO/AgoraRtm_Apple	https://download.agora.io/rtm2/release/AgoraRtmKit.xcframework_{version}.zip
