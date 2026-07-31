@@ -30,13 +30,24 @@
     Apple SDK in whichever app references this package.
 
     AgoraRtmKit links exactly one @rpath dependency, aosl (confirmed with `otool -L`). Fetched by
-    build/fetch-signaling.sh — for macOS these come from the AgoraRtm_Apple Swift package's binary
-    xcframeworks (download.agora.io/rtm2/release/), which ship one universal xcframework spanning
-    iOS, macOS and visionOS. The fetch script strips every slice but macos-arm64_x86_64.
+    build/fetch-signaling.sh — AgoraRtmKit for macOS comes from the AgoraRtm_Apple Swift package's
+    binary xcframeworks (download.agora.io/rtm2/release/), which ship one universal xcframework
+    spanning iOS, macOS and visionOS; the fetch script strips every slice but macos-arm64_x86_64.
 
     This package coexists with either RTC package in one app — different framework names, different
-    classes. (Both ship an aosl.xcframework, but it is the same infra library and the app bundle
-    carries a single copy.)
+    classes — but only because aosl is handled deliberately. Both products ship an aosl.xcframework
+    and both land at Contents/Frameworks/aosl.framework: the app bundle carries a single copy, and
+    which one it is, is whichever the build kept. Up to 2.2.8.2 they were not the same library.
+    RTM's own pairing is aosl 1.3.0, the RTC SDK carries 1.3.5, and 1.3.0 does not export
+    _aosl_data_ptr — one of the 144 aosl symbols AgoraRtcKit resolves at load — so an app
+    referencing both could fail to bring up the RTC engine, with nothing in the build to say so.
+
+    So aosl is staged out of the RTC archive instead (Agora publishes no standalone 1.3.5 for
+    macOS), which makes the two copies the same file. Checked in two places that fail rather than
+    warn: the fetch script checks the staged framework exports _aosl_data_ptr, and
+    tests/Net.Agora.Mac.PackageTests checks the packed aosl is byte for byte Net.Agora.Video.Mac's.
+    The reverse direction was checked before the switch — all 116 aosl symbols AgoraRtmKit imports
+    are exported by 1.3.5 too, so nothing regressed for Signaling on its own.
   -->
   <ItemGroup>
     <NativeReference Include="lib/AgoraRtmKit.xcframework">

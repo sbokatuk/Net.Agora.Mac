@@ -21,7 +21,7 @@ Three products are bound, from `net8.0-macos` through `net10.0-macos`:
 | --- | --- | --- |
 | `Net.Agora.Video.Mac` | `AgoraRtcEngine_macOS` | The app shows or sends video (also carries the full audio surface). |
 | `Net.Agora.Voice.Mac` | `AgoraRtcEngine_macOS` (audio surface) | Audio only — the same engine driven with an audio-only API. |
-| `Net.Agora.Signaling.Mac` | `AgoraRtm_Apple` (macOS slice) | Realtime messaging (Signaling / RTM 2.x, its own 2.2.x version line) — coexists with either RTC package. |
+| `Net.Agora.Signaling.Mac` | `AgoraRtm_Apple` (macOS slice) | Realtime messaging (Signaling / RTM 2.x, its own 2.2.x version line) — coexists with either RTC package **from 2.2.8.3**; earlier versions could stop one of the two loading (see the 2.2.8.3 release note). |
 
 > **No Whiteboard, Chat, IoT or Fastboard.** Agora ships no native macOS SDK for these. netless's
 > Interactive Whiteboard is a UIKit source pod with no AppKit build (its "macOS" offering is the
