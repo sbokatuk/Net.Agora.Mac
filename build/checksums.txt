@@ -18,6 +18,9 @@
 # and confirm the version is the one actually published:
 #   curl -s https://trunk.cocoapods.org/api/v1/pods/AgoraRtcEngine_macOS | python3 -m json.tool
 #
+# AgoraRtcEngine_macOS is fetched twice: by fetch-video.sh and fetch-voice.sh for the RTC surface,
+# and by fetch-signaling.sh for aosl alone — see that script's header for why Signaling does not
+# use the aosl.xcframework_<version>.zip that AgoraRtm_Apple pairs with this RTM release. Both
+# verify against this one entry, so the two cannot end up staging aosl from different downloads.
 AgoraRtcEngine_macOS-4.6.2 8698f9aa6b689bbefb92ea49bcc181b6f31361b284e50ee2b6fbc7f7a3df2d13
 AgoraRtmKit.xcframework_2.2.8 6b2381dcbdc4bbbbf2e36fc715a09fae7906fd975ac6c78346ac7b67f3563e24
-aosl.xcframework_1.3.0 569936de5feb9d5c67eef62fd35a99047953c6ce3064fe24d9e74bebed8992cd

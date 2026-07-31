@@ -128,6 +128,66 @@ public class PackageLayoutTests
     }
 
     [Theory]
+    [InlineData(Packages.Voice)]
+    [InlineData(Packages.Signaling)]
+    public void Aosl_is_the_very_same_library_the_rtc_packages_ship(string packageId)
+    {
+        // Every package here that ships an aosl.xcframework puts it at the same path,
+        // Contents/Frameworks/aosl.framework, in a consuming app's bundle. The bundle carries one
+        // copy — whichever the build kept — so every product in that app runs against it, built
+        // against it or not.
+        //
+        // Up to Signaling 2.2.8.2 they were not the same library. AgoraRtm_Apple pairs RTM with
+        // aosl 1.3.0 where the RTC SDK carries 1.3.5, and 1.3.0 does not export _aosl_data_ptr,
+        // one of the 144 aosl symbols AgoraRtcKit resolves at load. An app referencing Signaling
+        // and Video could therefore fail to bring up the RTC engine at all — decided by nothing
+        // the developer controls, and reported by nothing in the build. The Android and iOS
+        // bindings shipped the same bug through their own mechanisms; on Android it reached a
+        // device before anyone saw it.
+        //
+        // build/fetch-signaling.sh now stages aosl out of the RTC archive, so the copies are
+        // literally the same file. Byte comparison rather than a version string, because a plist
+        // version can agree while the binary does not.
+        var reference = AoslBinaries(Packages.Video);
+        var actual = AoslBinaries(packageId);
+
+        Assert.Equal(reference.Keys.Order(StringComparer.Ordinal),
+                     actual.Keys.Order(StringComparer.Ordinal));
+
+        foreach (var (slice, bytes) in actual)
+        {
+            Assert.True(
+                reference[slice].SequenceEqual(bytes),
+                $"{packageId} ships a different aosl binary than {Packages.Video} for '{slice}'. " +
+                "Two packages in one app cannot each keep the aosl they were built against — " +
+                "see build/fetch-signaling.sh.");
+        }
+    }
+
+    /// <summary>The aosl Mach-O of every slice a package's payload carries, keyed by slice name.</summary>
+    private static Dictionary<string, byte[]> AoslBinaries(string packageId)
+    {
+        using var package = Packages.OpenPackage(packageId);
+        using var payload = Packages.OpenNativePayload(package, packageId, PayloadTargetFramework);
+
+        // A macOS framework is versioned: the binary lives under Versions/A and the top-level
+        // "aosl" is a symlink to it, which a zip carries as an entry of its own.
+        var binaries = payload.Entries
+            .Where(e => e.FullName.StartsWith("aosl.xcframework/", StringComparison.Ordinal)
+                        && e.FullName.EndsWith("/Versions/A/aosl", StringComparison.Ordinal))
+            .ToDictionary(e => e.FullName.Split('/')[1], e =>
+            {
+                using var stream = e.Open();
+                using var buffer = new MemoryStream();
+                stream.CopyTo(buffer);
+                return buffer.ToArray();
+            });
+
+        Assert.True(binaries.Count > 0, $"{packageId} carries no aosl.framework binary at all.");
+        return binaries;
+    }
+
+    [Theory]
     [MemberData(nameof(Packages.PackageIds), MemberType = typeof(Packages))]
     public void Xcframework_manifests_match_the_slices_actually_shipped(string packageId)
     {
