@@ -1,6 +1,6 @@
 name: release
 
-# One tag releases one track. The packages sit on unrelated version lines (RTC 4.6.x, RTM 2.2.x),
+# One tag releases one track. The packages sit on unrelated version lines (RTC 4.6.x, RTM 2.3.x),
 # so a single tag that published both would stamp a release note true of neither. Each track has
 # its own tag prefix — the main RTC track a bare "v", Signaling its product name — and a tag builds
 # and publishes only that track. See build/tracks.tsv.

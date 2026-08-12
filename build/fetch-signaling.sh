@@ -15,24 +15,24 @@ set -euo pipefail
 #
 # Why: every package here that ships an aosl.xcframework puts it at the same path,
 # Contents/Frameworks/aosl.framework, in a consuming app's bundle. The bundle carries one copy —
-# whichever the build kept — so every product in that app runs against it. The RTM-paired aosl is
-# 1.3.0 and the RTC SDK's is 1.3.5, and 1.3.0 does not export _aosl_data_ptr, one of the 144 aosl
-# symbols AgoraRtcKit resolves at load. An app referencing Signaling and Video or Voice could
-# therefore fail to load the RTC engine, with nothing in the build to say so. Taking aosl from the
-# RTC archive makes the two copies the same file, so there is nothing left to win. The reverse
-# direction was checked before the switch: all 116 aosl symbols AgoraRtmKit imports are exported by
-# 1.3.5 as well, so Signaling on its own is unaffected.
+# whichever the build kept — so every product in that app runs against it. Through RTM 2.2.8 the
+# RTM-paired aosl was 1.3.0 against the RTC SDK's 1.3.5, and 1.3.0 does not export _aosl_data_ptr,
+# one of the 144 aosl symbols AgoraRtcKit resolves at load. An app referencing Signaling and Video
+# or Voice could therefore fail to load the RTC engine, with nothing in the build to say so. Taking
+# aosl from the RTC archive makes the two copies the same file, so there is nothing left to win.
+# The reverse direction is re-checked on every RTM bump: every aosl symbol AgoraRtmKit imports is
+# exported by the RTC archive's 1.3.5 as well, so Signaling on its own is unaffected.
 #
-# Agora publishes no standalone aosl 1.3.x for macOS — only the 1.3.0 on the rtm2 path — so the
-# whole RTC SDK archive is the only place to get it. That is why this script reads
-# AgoraVideoMacVersion: it needs the archive the RTC packages ship aosl from, not a version of its
-# own. tests/Net.Agora.Mac.PackageTests asserts the result — that the aosl this package packs is
-# byte for byte the one Net.Agora.Video.Mac packs.
+# RTM 2.3.0 pairs 1.3.5 itself, so the versions no longer disagree — but "same version" is not
+# "same bytes" for two separately published builds, and byte identity is what the check below and
+# tests/Net.Agora.Mac.PackageTests are about. So this script still reads AgoraVideoMacVersion: it
+# needs the archive the RTC packages ship aosl from, not a version of its own. The test asserts the
+# result — that the aosl this package packs is byte for byte the one Net.Agora.Video.Mac packs.
 #
 # Usage:
 #   ./build/fetch-signaling.sh              # the versions pinned in Directory.Build.props
-#   ./build/fetch-signaling.sh 2.2.8        # an explicit RTM version, pinned RTC version
-#   ./build/fetch-signaling.sh 2.2.8 4.6.2  # both explicit
+#   ./build/fetch-signaling.sh 2.3.0        # an explicit RTM version, pinned RTC version
+#   ./build/fetch-signaling.sh 2.3.0 4.6.2  # both explicit
 #
 # Check what is actually published before bumping the RTM pin (the Package.swift is the source of
 # truth for the RTM release's own aosl pairing, which this script deliberately does not follow):
@@ -88,7 +88,7 @@ sha256_of() {
 # by the zip's base name), and unzip it into $2.
 fetch_xcframework() {
     artifact="$1"       # e.g. AgoraRtmKit
-    version="$2"        # e.g. 2.2.8
+    version="$2"        # e.g. 2.3.0
     into="$3"
     key="$artifact.xcframework_$version"
 
@@ -198,7 +198,7 @@ for binary in "$DEST"/aosl.xcframework/*/aosl.framework/Versions/A/aosl; do
         *_aosl_data_ptr*) ;;
         *)
             echo "error: $binary does not export _aosl_data_ptr, so AgoraRtcKit cannot load" >&2
-            echo "       against it. That is the RTM-paired aosl 1.3.0, not the one inside" >&2
+            echo "       against it. That is the RTM-paired aosl, not the one inside" >&2
             echo "       AgoraRtcEngine_macOS-$RTC_VERSION.zip. See the header of this script." >&2
             exit 1
             ;;

@@ -137,13 +137,17 @@ public class PackageLayoutTests
         // copy — whichever the build kept — so every product in that app runs against it, built
         // against it or not.
         //
-        // Up to Signaling 2.2.8.2 they were not the same library. AgoraRtm_Apple pairs RTM with
-        // aosl 1.3.0 where the RTC SDK carries 1.3.5, and 1.3.0 does not export _aosl_data_ptr,
-        // one of the 144 aosl symbols AgoraRtcKit resolves at load. An app referencing Signaling
-        // and Video could therefore fail to bring up the RTC engine at all — decided by nothing
-        // the developer controls, and reported by nothing in the build. The Android and iOS
-        // bindings shipped the same bug through their own mechanisms; on Android it reached a
-        // device before anyone saw it.
+        // Up to Signaling 2.2.8.2 they were not the same library. AgoraRtm_Apple then paired RTM
+        // with aosl 1.3.0 where the RTC SDK carries 1.3.5, and 1.3.0 does not export
+        // _aosl_data_ptr, one of the 144 aosl symbols AgoraRtcKit resolves at load. An app
+        // referencing Signaling and Video could therefore fail to bring up the RTC engine at all —
+        // decided by nothing the developer controls, and reported by nothing in the build. The
+        // Android and iOS bindings shipped the same bug through their own mechanisms; on Android
+        // it reached a device before anyone saw it.
+        //
+        // RTM 2.3.0 pairs 1.3.5 itself, so that particular mismatch is gone. This test is not:
+        // two separately published builds of one version are not the same bytes by construction,
+        // and a future release can diverge again without moving a version number.
         //
         // build/fetch-signaling.sh now stages aosl out of the RTC archive, so the copies are
         // literally the same file. Byte comparison rather than a version string, because a plist

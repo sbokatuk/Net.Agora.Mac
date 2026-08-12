@@ -45,7 +45,7 @@
   -->
   <PropertyGroup>
     <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' And '$(AgoraDevicePackage)' == 'Voice' ">$(AgoraVoiceMacVersion).$(AgoraVoiceBindingRevision)</AgoraDevicePackageVersion>
-    <!-- Signaling is on its own native line (RTM 2.2.x), not the RTC one VersionPrefix carries. -->
+    <!-- Signaling is on its own native line (RTM 2.3.x), not the RTC one VersionPrefix carries. -->
     <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' And '$(AgoraDevicePackage)' == 'Signaling' ">$(AgoraSignalingMacVersion).$(AgoraSignalingBindingRevision)</AgoraDevicePackageVersion>
     <AgoraDevicePackageVersion Condition=" '$(AgoraDevicePackageVersion)' == '' ">$(VersionPrefix)</AgoraDevicePackageVersion>
   </PropertyGroup>

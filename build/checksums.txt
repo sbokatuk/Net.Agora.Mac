@@ -23,4 +23,4 @@
 # use the aosl.xcframework_<version>.zip that AgoraRtm_Apple pairs with this RTM release. Both
 # verify against this one entry, so the two cannot end up staging aosl from different downloads.
 AgoraRtcEngine_macOS-4.6.2 8698f9aa6b689bbefb92ea49bcc181b6f31361b284e50ee2b6fbc7f7a3df2d13
-AgoraRtmKit.xcframework_2.2.8 6b2381dcbdc4bbbbf2e36fc715a09fae7906fd975ac6c78346ac7b67f3563e24
+AgoraRtmKit.xcframework_2.3.0 a789d38bf63c97ab9db6c6574fd17de3e820dae44b449ca680624a57fcebb3b3

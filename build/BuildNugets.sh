@@ -16,7 +16,7 @@ set -e
 # want.
 #
 # Each package packs at its own <VersionPrefix> from Directory.Build.props: the packages sit on
-# independent native version lines (RTC 4.6.x, RTM 2.2.x, Whiteboard 2.16.x), so no single version
+# independent native version lines (RTC 4.6.x, RTM 2.3.x, Whiteboard 2.16.x), so no single version
 # can be stamped across the set — which is why there is no way to pass one. Releases publish
 # whatever versions the pins say, and nuget.org's --skip-duplicate makes republishing an unchanged
 # version a no-op.

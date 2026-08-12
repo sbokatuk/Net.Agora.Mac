@@ -2,7 +2,7 @@
 # releases each. Source of truth read by build/resolve-track.sh (tag -> track), BuildNugets.sh
 # --track (pack only a track), and .github/workflows/release.yml.
 #
-# Why tracks exist: the packages sit on unrelated native version lines (RTC 4.6.x, RTM 2.2.x), so
+# Why tracks exist: the packages sit on unrelated native version lines (RTC 4.6.x, RTM 2.3.x), so
 # one tag publishing all of them stamps a release note that makes sense for none. A tag names one
 # track; the release builds and publishes only that track, at its own pins.
 #

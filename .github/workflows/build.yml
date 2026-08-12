@@ -20,7 +20,7 @@ on:
       suffix:
         description: >
           Optional prerelease suffix (e.g. beta.12.34) appended to every package's own version.
-          The packages sit on independent native version lines (RTC 4.6.x, RTM 2.2.x), so there
+          The packages sit on independent native version lines (RTC 4.6.x, RTM 2.3.x), so there
           is no single version to stamp — each packs at its own pin from Directory.Build.props.
         required: false
         default: ''

@@ -410,9 +410,9 @@ public static class SmokeTests
     /// </summary>
     private sealed class ClientDelegate : AgoraRtmClientDelegate
     {
-        public override void ConnectionChangedToState(
-            AgoraRtmClientKit rtmKit, string channelName, AgoraRtmClientConnectionState state, nint reason) =>
-            SmokeTests.Reporter($"delegate: connection {state}");
+        public override void DidReceiveLinkStateEvent(
+            AgoraRtmClientKit rtmKit, AgoraRtmLinkStateEvent @event) =>
+            SmokeTests.Reporter($"delegate: link {@event.PreviousState} -> {@event.CurrentState}");
     }
 #else
     /// <summary>
