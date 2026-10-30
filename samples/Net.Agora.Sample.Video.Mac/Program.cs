@@ -19,7 +19,7 @@ public static class Program
 
 /// <summary>
 /// A one-window AppKit app driving <see cref="AgoraRtcEngineKit"/> directly — the raw binding, no
-/// cross-platform façade in between. Enter an App ID and channel, press Join: the local camera
+/// cross-platform façade in between. Enter an App ID, channel and token, press Join: the local camera
 /// renders on the left and the first remote user on the right. This is exactly what a native macOS
 /// consumer of Net.Agora.Video.Mac wires up.
 /// </summary>
@@ -28,6 +28,7 @@ public sealed class AppDelegate : NSApplicationDelegate
     private NSWindow _window = null!;
     private NSTextField _appId = null!;
     private NSTextField _channel = null!;
+    private NSTextField _token = null!;
     private NSView _localView = null!;
     private NSView _remoteView = null!;
     private NSTextField _status = null!;
@@ -39,7 +40,7 @@ public sealed class AppDelegate : NSApplicationDelegate
     public override void DidFinishLaunching(NSNotification notification)
     {
         _window = new NSWindow(
-            new CGRect(0, 0, 900, 560),
+            new CGRect(0, 0, 900, 600),
             NSWindowStyle.Titled | NSWindowStyle.Closable | NSWindowStyle.Miniaturizable | NSWindowStyle.Resizable,
             NSBackingStore.Buffered,
             deferCreation: false)
@@ -50,9 +51,14 @@ public sealed class AppDelegate : NSApplicationDelegate
 
         var content = _window.ContentView!;
 
-        _appId = LabeledField(content, "App ID", 520, placeholder: "your Agora App ID");
-        _channel = LabeledField(content, "Channel", 480, placeholder: "channel name");
+        _appId = LabeledField(content, "App ID", 560, placeholder: "your Agora App ID");
+        _channel = LabeledField(content, "Channel", 520, placeholder: "channel name");
         _channel.StringValue = "demo";
+        _token = LabeledField(content, "Token", 480, placeholder: "token (leave empty if App Certificate is off)");
+
+        Prefill(_appId, "AgoraSampleAppId");
+        Prefill(_channel, "AgoraSampleChannel");
+        Prefill(_token, "AgoraSampleToken");
 
         var joinButton = new NSButton { Title = "Join", BezelStyle = NSBezelStyle.Rounded, Frame = new CGRect(20, 440, 90, 30) };
         joinButton.Activated += (_, _) => Join();
@@ -103,7 +109,9 @@ public sealed class AppDelegate : NSApplicationDelegate
         _engine.SetupLocalVideo(new AgoraRtcVideoCanvas { Uid = 0, View = _localView });
         _engine.StartPreview();
 
-        var code = _engine.JoinChannel(token: null, _channel.StringValue.Trim(), info: null, uid: 0, joinSuccess: null);
+        var token = _token.StringValue.Trim();
+        var code = _engine.JoinChannel(
+            string.IsNullOrEmpty(token) ? null : token, _channel.StringValue.Trim(), info: null, uid: 0, joinSuccess: null);
         _status.StringValue = code == 0 ? "Joining…" : $"joinChannel returned {code}";
         _joined = true;
     }
@@ -132,6 +140,19 @@ public sealed class AppDelegate : NSApplicationDelegate
     });
 
     internal void OnStatus(string message) => BeginInvokeOnMainThread(() => _status.StringValue = message);
+
+    // The value of an AgoraSample* build property, if the build set one. See the csproj.
+    private static void Prefill(NSTextField field, string key)
+    {
+        var value = typeof(AppDelegate).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+            .Cast<System.Reflection.AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == key)?.Value;
+        if (!string.IsNullOrEmpty(value))
+        {
+            field.StringValue = value;
+        }
+    }
 
     // ---- tiny programmatic-layout helpers -------------------------------------------------
 
