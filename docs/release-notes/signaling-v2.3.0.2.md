@@ -30,10 +30,13 @@ imports.
 - `tests/Net.Agora.Mac.PackageTests` passes, including the `aosl` byte identity check against
   `Net.Agora.Video.Mac`, and the host smoke suite passes on `net8.0-macos15.0`, `net9.0-macos15.0`
   and `net10.0-macos26.0`.
+- Live, on a secured Agora project with tokens signed for the run: two copies of the
+  `Net.Agora.Sample.Signaling.Mac` sample logged in, subscribed and exchanged messages both ways,
+  over four runs. In one of them the host's network changed: the link went `Disconnected`,
+  `Connecting`, `Connected` in 0.4 seconds and messages carried on. An expired token failed with
+  `Token is expired`.
 - One process with Signaling and Video on the shared `aosl` 1.3.16: the RTC engine joined a channel
-  and published video, and the RTM client started and reached the Agora service.
-- Not verified: a completed login, subscribe or publish. The test project doesn't have Signaling
-  enabled yet, so the server refuses the login with -10015.
+  and published video while the RTM client logged in.
 
 ## Packages
 
