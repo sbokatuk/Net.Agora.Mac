@@ -126,8 +126,10 @@ bump there does not compile.
 - Packed on both SDK bands. `tests/Net.Agora.Mac.PackageTests` passes, including the `aosl` byte
   identity check against `Net.Agora.Video.Mac`.
 - The host smoke suite passes on `net8.0-macos15.0`, `net9.0-macos15.0` and `net10.0-macos26.0`.
-- Not verified: login, subscribe and publish against the Agora service. The test project does not
-  have Signaling enabled yet, so the server refuses the login.
+- Live, on a secured Agora project with tokens signed for the run: two copies of the
+  `Net.Agora.Sample.Signaling.Mac` sample logged in, subscribed to a channel of their own and
+  exchanged messages both ways, over four runs. `DidReceiveLinkStateEvent` reported `Connecting`
+  then `Connected`, and an expired token failed with `Token is expired`.
 
 ## Packages
 
