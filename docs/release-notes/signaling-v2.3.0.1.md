@@ -2,8 +2,8 @@
 
 `Net.Agora.Signaling.Mac` advances to **2.3.0.1**: the native SDK moves from `AgoraRtmKit` 2.2.8
 to **2.3.0**, and the binding revision resets to 1 with it. This is the bump the daily upstream
-check asked for in [#7](https://github.com/sbokatuk/Net.Agora.Mac/issues/7), which it closes — but
-it is **not a pin-only bump**. 2.3.0 deletes the connection-state surface this binding carried, and
+check asked for in [#7](https://github.com/sbokatuk/Net.Agora.Mac/issues/7) — but it is **not a
+pin-only bump**. 2.3.0 deletes the connection-state surface this binding carried, and
 a binding that keeps exporting a selector the SDK no longer declares compiles fine and simply stops
 firing. So that surface is ported, not kept.
 
@@ -114,13 +114,20 @@ therefore sees the link-state event on macOS and the connection-state callback e
 those repositories catch up; keep the connection-state handling behind a platform condition rather
 than deleting it.
 
+`Net.Agora.Signaling`'s Apple source set overrides `ConnectionChangedToState` for both platforms, so
+its macOS leg needs the same `#if MACOS` split before it can re-pin to this package. A plain version
+bump there does not compile.
+
 ## Verified
 
 - `build/fetch-signaling.sh` runs clean and stages both frameworks against the new checksum.
-- `dotnet build src/Net.Agora.Signaling.Mac -f net8.0-macos15.0` succeeds with no warnings, and
-  the generator emits `AgoraRtmLinkStateEvent` and `DidReceiveLinkStateEvent`.
-- Not verified: the device tests, which need a real macOS run and an App ID. Their RTM delegate is
-  ported to `DidReceiveLinkStateEvent`, so they compile.
+- All 115 `aosl` symbols `AgoraRtmKit` 2.3.0 imports are exported by the staged `aosl`, re-checked
+  with `nm`.
+- Packed on both SDK bands. `tests/Net.Agora.Mac.PackageTests` passes, including the `aosl` byte
+  identity check against `Net.Agora.Video.Mac`.
+- The host smoke suite passes on `net8.0-macos15.0`, `net9.0-macos15.0` and `net10.0-macos26.0`.
+- Not verified: login, subscribe and publish against the Agora service. The test project does not
+  have Signaling enabled yet, so the server refuses the login.
 
 ## Packages
 
