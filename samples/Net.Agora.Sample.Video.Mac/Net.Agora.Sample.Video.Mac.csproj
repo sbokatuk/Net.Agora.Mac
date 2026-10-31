@@ -6,7 +6,11 @@
     binding. It consumes the packed package from ../../artifacts (see NuGet.config), so fetch and
     pack first:
       ./build/fetch-video.sh && ./build/BuildNugets.sh
-      dotnet build samples/Net.Agora.Sample.Video.Mac -f net9.0-macos
+      dotnet build samples/Net.Agora.Sample.Video.Mac -f net9.0-macos15.0
+
+    For a live check, set AgoraSampleAppId, AgoraSampleChannel and AgoraSampleToken as build
+    properties or environment variables to fill the fields at start-up. They are empty by default.
+    The values end up in the built app, so never share a build made with them.
   -->
   <PropertyGroup>
     <!--
@@ -39,6 +43,12 @@
 
   <ItemGroup>
     <None Include="Info.plist" LogicalName="Info.plist" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="AgoraSampleAppId" Value="$(AgoraSampleAppId)" Condition=" '$(AgoraSampleAppId)' != '' " />
+    <AssemblyMetadata Include="AgoraSampleChannel" Value="$(AgoraSampleChannel)" Condition=" '$(AgoraSampleChannel)' != '' " />
+    <AssemblyMetadata Include="AgoraSampleToken" Value="$(AgoraSampleToken)" Condition=" '$(AgoraSampleToken)' != '' " />
   </ItemGroup>
 
 </Project>

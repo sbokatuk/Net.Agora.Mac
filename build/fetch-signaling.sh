@@ -20,19 +20,21 @@ set -euo pipefail
 # one of the 144 aosl symbols AgoraRtcKit resolves at load. An app referencing Signaling and Video
 # or Voice could therefore fail to load the RTC engine, with nothing in the build to say so. Taking
 # aosl from the RTC archive makes the two copies the same file, so there is nothing left to win.
-# The reverse direction is re-checked on every RTM bump: every aosl symbol AgoraRtmKit imports is
-# exported by the RTC archive's 1.3.5 as well, so Signaling on its own is unaffected.
+# The reverse direction is re-checked on every RTM or RTC bump: every aosl symbol AgoraRtmKit
+# imports has to be exported by the RTC archive's aosl as well, so Signaling on its own is
+# unaffected.
 #
-# RTM 2.3.0 pairs 1.3.5 itself, so the versions no longer disagree — but "same version" is not
-# "same bytes" for two separately published builds, and byte identity is what the check below and
-# tests/Net.Agora.Mac.PackageTests are about. So this script still reads AgoraVideoMacVersion: it
-# needs the archive the RTC packages ship aosl from, not a version of its own. The test asserts the
-# result — that the aosl this package packs is byte for byte the one Net.Agora.Video.Mac packs.
+# RTM 2.3.0 pairs 1.3.5 and the RTC 4.7.0 archive carries 1.3.16, so the versions disagree again.
+# Even when they agree, "same version" is not "same bytes" for two separately published builds, and
+# byte identity is what the check below and tests/Net.Agora.Mac.PackageTests are about. So this
+# script reads AgoraVideoMacVersion: it needs the archive the RTC packages ship aosl from, not a
+# version of its own. The test asserts the result — that the aosl this package packs is byte for
+# byte the one Net.Agora.Video.Mac packs.
 #
 # Usage:
 #   ./build/fetch-signaling.sh              # the versions pinned in Directory.Build.props
 #   ./build/fetch-signaling.sh 2.3.0        # an explicit RTM version, pinned RTC version
-#   ./build/fetch-signaling.sh 2.3.0 4.6.2  # both explicit
+#   ./build/fetch-signaling.sh 2.3.0 4.7.0  # both explicit
 #
 # Check what is actually published before bumping the RTM pin (the Package.swift is the source of
 # truth for the RTM release's own aosl pairing, which this script deliberately does not follow):

@@ -2,7 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Net.Agora.Video.Mac?label=nuget)](https://www.nuget.org/packages/Net.Agora.Video.Mac)
 [![Targets: net8.0 | net9.0 | net10.0](https://img.shields.io/badge/targets-net8.0%20%7C%20net9.0%20%7C%20net10.0%20(macos)-512BD4)](#packages)
-[![AgoraRtcEngine_macOS 4.6.2](https://img.shields.io/badge/AgoraRtcEngine__macOS-4.6.2-099DFD)](https://docs.agora.io/en/sdks?platform=macos)
+[![AgoraRtcEngine_macOS 4.7.0](https://img.shields.io/badge/AgoraRtcEngine__macOS-4.7.0-099DFD)](https://docs.agora.io/en/sdks?platform=macos)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
 
 .NET for macOS (AppKit) bindings for Agora's **native macOS** SDKs.
@@ -123,8 +123,8 @@ loaded into the process, read the native SDK version, and round-trip the engine 
 destroy with an unregistered App ID; nothing touches the network and no credentials are involved.
 
 ```sh
-./.github/scripts/run-macos-tests.sh 4.6.2.1 net10.0-macos
-./.github/scripts/run-macos-tests.sh 4.6.2.1 net10.0-macos Voice
+./.github/scripts/run-macos-tests.sh 4.7.0.1 net10.0-macos26.0
+./.github/scripts/run-macos-tests.sh 4.7.0.1 net10.0-macos26.0 Voice
 ```
 
 ## CI

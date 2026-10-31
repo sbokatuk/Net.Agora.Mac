@@ -58,9 +58,7 @@
       AgoraRtcKit's binary links @rpath/video_dec.framework/video_dec directly (confirmed with
       `otool -L` against the macos slice), so dyld aborts the process at launch without it — a
       load-time failure, not something the compiler or linker can catch, since nothing here calls
-      into it directly. video_enc.xcframework, the sibling one might expect to need too, is not
-      referenced by AgoraRtcKit's binary and is correctly left out (it ships as
-      Net.Agora.Extensions.VideoEncoder.Mac instead).
+      into it directly.
     -->
     <NativeReference Include="lib/video_dec.xcframework">
       <Kind>Framework</Kind>

@@ -145,9 +145,9 @@ public class PackageLayoutTests
         // Android and iOS bindings shipped the same bug through their own mechanisms; on Android
         // it reached a device before anyone saw it.
         //
-        // RTM 2.3.0 pairs 1.3.5 itself, so that particular mismatch is gone. This test is not:
-        // two separately published builds of one version are not the same bytes by construction,
-        // and a future release can diverge again without moving a version number.
+        // RTM 2.3.0 pairs 1.3.5 and the RTC 4.7.0 archive carries 1.3.16. The newer aosl exports
+        // what RTM imports, so that mismatch is harmless, but this test stays: the bundle still
+        // keeps one copy, and only one archive can make the two packages agree on which.
         //
         // build/fetch-signaling.sh now stages aosl out of the RTC archive, so the copies are
         // literally the same file. Byte comparison rather than a version string, because a plist
