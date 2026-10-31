@@ -58,8 +58,7 @@ public static class Packages
         ("Net.Agora.Extensions.FaceCapture.Mac", ["AgoraFaceCaptureExtension"]),
         ("Net.Agora.Extensions.FaceDetection.Mac", ["AgoraFaceDetectionExtension"]),
         ("Net.Agora.Extensions.VideoQualityAnalyzer.Mac", ["AgoraVideoQualityAnalyzerExtension"]),
-        // The only two-framework extension: the encoder plugin and the codec it wraps.
-        ("Net.Agora.Extensions.VideoEncoder.Mac", ["AgoraVideoEncoderExtension", "video_enc"]),
+        ("Net.Agora.Extensions.VideoEncoder.Mac", ["AgoraVideoEncoderExtension"]),
         ("Net.Agora.Extensions.Av1Encoder.Mac", ["AgoraVideoAv1EncoderExtension"]),
     ];
 

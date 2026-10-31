@@ -41,15 +41,15 @@
     RTM's pairing then was aosl 1.3.0 against the RTC SDK's 1.3.5, and 1.3.0 does not export
     _aosl_data_ptr — one of the 144 aosl symbols AgoraRtcKit resolves at load — so an app
     referencing both could fail to bring up the RTC engine, with nothing in the build to say so.
-    RTM 2.3.0 pairs 1.3.5 itself, so the two versions agree again. What does not follow from that
-    is that two separately published builds of one version are the same bytes, which is the
+    RTM 2.3.0 pairs 1.3.5 and the RTC 4.7.0 archive carries 1.3.16, so the versions disagree again,
+    and even when they agree two separately published builds are not the same bytes, which is the
     property the tests below assert.
 
     So aosl is staged out of the RTC archive instead, which makes the two copies the same file.
     Checked in two places that fail rather than warn: the fetch script checks the staged framework
     exports _aosl_data_ptr, and tests/Net.Agora.Mac.PackageTests checks the packed aosl is byte for
     byte Net.Agora.Video.Mac's. The reverse direction is re-checked on every RTM bump — every aosl
-    symbol AgoraRtmKit imports has to be exported by the RTC archive's 1.3.5, and is.
+    symbol AgoraRtmKit imports has to be exported by the RTC archive's aosl, and is.
   -->
   <ItemGroup>
     <NativeReference Include="lib/AgoraRtmKit.xcframework">

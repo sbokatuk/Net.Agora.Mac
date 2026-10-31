@@ -14,7 +14,7 @@ set -euo pipefail
 #
 # Usage:
 #   ./build/fetch-voice.sh            # the version pinned in Directory.Build.props
-#   ./build/fetch-voice.sh 4.6.2      # an explicit version
+#   ./build/fetch-voice.sh 4.7.0      # an explicit version
 
 cd "$(dirname "$0")"
 

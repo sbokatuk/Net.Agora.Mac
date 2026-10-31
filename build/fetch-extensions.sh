@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # Usage:
 #   ./build/fetch-extensions.sh            # the version pinned in Directory.Build.props
-#   ./build/fetch-extensions.sh 4.6.2      # an explicit version
+#   ./build/fetch-extensions.sh 4.7.0      # an explicit version
 #
 # The package list comes from build/packages.tsv (its Extensions.* rows) so that adding a package
 # is still "a row in the .tsv and a project under src/". What lives *here* is the mapping from a
@@ -57,7 +57,7 @@ frameworks_for() {
         Extensions.FaceCapture)          echo "AgoraFaceCaptureExtension" ;;
         Extensions.FaceDetection)        echo "AgoraFaceDetectionExtension" ;;
         Extensions.VideoQualityAnalyzer) echo "AgoraVideoQualityAnalyzerExtension" ;;
-        Extensions.VideoEncoder)         echo "AgoraVideoEncoderExtension video_enc" ;;
+        Extensions.VideoEncoder)         echo "AgoraVideoEncoderExtension" ;;
         Extensions.Av1Encoder)           echo "AgoraVideoAv1EncoderExtension" ;;
         *)                               echo "" ;;
     esac

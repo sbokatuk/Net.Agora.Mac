@@ -21,8 +21,8 @@ tens of MB across the one macOS slice.
 
 ## What the packages look like
 
-Every one of them is one (or, for `VideoEncoder`, two) `.xcframework` with no Objective-C class a
-consumer would call — the engine loads them itself. So each project's `ApiDefinition.cs` is
+Every one of them is one `.xcframework` with no Objective-C class a consumer would call — the
+engine loads them itself. So each project's `ApiDefinition.cs` is
 deliberately empty and the packed assembly is a ~6 KB stub next to the real payload in
 `<Assembly>.resources.zip`, which is why `tests/Net.Agora.Mac.PackageTests` holds them to a
 different set of expectations than the four real bindings.

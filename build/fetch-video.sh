@@ -11,7 +11,7 @@ set -euo pipefail
 #
 # Usage:
 #   ./build/fetch-video.sh            # the version pinned in Directory.Build.props
-#   ./build/fetch-video.sh 4.6.2      # an explicit version
+#   ./build/fetch-video.sh 4.7.0      # an explicit version
 #
 # Check what is actually published before bumping the pin:
 #   curl -s https://trunk.cocoapods.org/api/v1/pods/AgoraRtcEngine_macOS | python3 -m json.tool
@@ -77,10 +77,9 @@ mkdir -p "$DEST"
 
 # The core RTC surface only: AgoraRtcKit plus the codec/infra dependencies it links against — every
 # @rpath entry `otool -L` reports on AgoraRtcKit's own binary, confirmed against the macOS slice
-# (aosl, Agorafdkaac, Agoraffmpeg, AgoraSoundTouch, video_dec). The other ~18 xcframeworks in the
+# (aosl, Agorafdkaac, Agoraffmpeg, AgoraSoundTouch, video_dec). The other ~16 xcframeworks in the
 # zip are optional feature plugins shipped as the Net.Agora.Extensions.*.Mac packages — see
-# build/fetch-extensions.sh. video_enc, video_dec's sibling, is one such plugin: AgoraRtcKit's
-# binary does not reference it.
+# build/fetch-extensions.sh.
 for framework in AgoraRtcKit aosl Agorafdkaac Agoraffmpeg AgoraSoundTouch video_dec; do
     if [ ! -d "$WORK/extracted/$framework.xcframework" ]; then
         echo "error: $framework.xcframework not found in the downloaded SDK" >&2
